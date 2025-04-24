@@ -42,24 +42,3 @@ stages:
         python src/train.py
       displayName: Run Model Train
 
-- stage: Deploy
-  displayName: Deploy the Model
-  dependsOn: Train
-  jobs:
-  - deployment: DeployToACI
-    displayName: Deploy to Azure Container Instance (ACI)
-    environment: production
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - script: |
-              echo "Deploying the container to Azure Container Instances"
-              az container create \
-                --resource-group <learning> \
-                --name yolov8-container1 \
-                --image <learnyolo>.azurecr.io/$(dockerImageName):$(dockerTag) \
-                --cpu 2 \
-                --memory 4 \
-                --ports 5000
-            displayName: Deploy Container
