@@ -1,0 +1,60 @@
+trigger:
+- main  # Run the pipeline whenever changes are pushed to the 'main' branch
+pool:
+ vmImage: 'ubuntu-latest'
+variables:
+ dockerImageName: yolov8-training1
+ dockerTag: $(Build.BuildId)
+stages:
+-stage: Build
+ displayName: Build Docker Image
+ jobs:
+ - job: BuildDocker
+   displayName: Build the Docker Image
+   steps:
+   - task: UsePythonVersion@0
+     inputs:
+       versionSpec: '3.x'
+       addToPath: true
+   - script: |
+       echo "Building the Docker image"
+       docker build -t $(dockerImageName):$(dockerTag) .
+     displayName: Build Docker Image
+   - script: |
+       echo "Pushing the Docker image to Azure Container Registry (ACR)"
+       az acr login --name <learnyolo>
+       docker tag $(dockerImageName):$(dockerTag) <your-acr-name>.azurecr.io/$(dockerImageName):$(dockerTag)
+       docker push <learnyolo>.azurecr.io/$(dockerImageName):$(dockerTag)
+     displayName: Push Docker Image to ACR
+- stage: Train
+ displayName: Train YOLOv8 Model
+ dependsOn: Build
+ jobs:
+ - job: TrainYOLOv8
+   displayName: Run YOLOv8 Train
+   steps:
+   - script: |
+       echo "Running train"
+       python src/train.py
+     displayName: Run Model Train
+- stage: Deploy
+ displayName: Deploy the Model
+ dependsOn: Train
+ jobs:
+ - deployment: DeployToACI
+   displayName: Deploy to Azure Container Instance (ACI)
+   environment: production
+   strategy:
+     runOnce:
+       deploy:
+         steps:
+         - script: |
+             echo "Deploying the container to Azure Container Instances"
+             az container create \
+               --resource-group <learning> \
+               --name yolov8-container1 \
+               --image <learnyolo>.azurecr.io/$(dockerImageName):$(dockerTag) \
+               --cpu 2 \
+               --memory 4 \
+               --ports 5000
+           displayName: Deploy Container
