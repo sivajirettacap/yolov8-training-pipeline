@@ -7,7 +7,10 @@ pool:
 variables:
   dockerImageName: yolov8-training1
   dockerTag: $(Build.BuildId)
-  acrName: learnyolo  # Replace this with your actual Azure Container Registry name
+  acrName: learnyolo  # Replace with your Azure Container Registry name
+  containerName: yolov8-container1  # Name of the container to deploy
+  ACR_USERNAME: learnyolo
+  ACR_PASSWORD: fLYUjg3UUmYKwzuBIvvvgLFTEI0WvCLzSEJpZfQiUL+ACRCwtB+X
 
 stages:
 - stage: Build
@@ -25,27 +28,22 @@ stages:
         docker build -t $(dockerImageName):$(dockerTag) .
       displayName: Build Docker Image
     - script: |
-        echo "Pushing the Docker image to Azure Container Registry (ACR)"
-        az acr login --name $(acrName)
+        echo "Logging in to Azure Container Registry"
+        docker login $(acrName).azurecr.io -u $(ACR_USERNAME) -p $(ACR_PASSWORD)
+
+        echo "Tagging the Docker image"
         docker tag $(dockerImageName):$(dockerTag) $(acrName).azurecr.io/$(dockerImageName):$(dockerTag)
+
+        echo "Pushing the Docker image to Azure Container Registry (ACR)"
         docker push $(acrName).azurecr.io/$(dockerImageName):$(dockerTag)
       displayName: Push Docker Image to ACR
+      env:  # Provide credentials as environment variables (use Azure DevOps secrets for security)
+        ACR_USERNAME: $(ACR_USERNAME)
+        ACR_PASSWORD: $(ACR_PASSWORD)
 
-- stage: Train
-  displayName: Train YOLOv8 Model
-  dependsOn: Build
-  jobs:
-  - job: TrainYOLOv8
-    displayName: Run YOLOv8 Train
-    steps:
-    - script: |
-        echo "Running train"
-        python src/train.py
-      displayName: Run Model Train
-      
 - stage: Deploy
   displayName: Deploy the Model
-  dependsOn: Train
+  dependsOn: Build
   jobs:
   - deployment: DeployToACI
     displayName: Deploy to Azure Container Instance (ACI)
@@ -57,8 +55,8 @@ stages:
           - script: |
               echo "Deploying the container to Azure Container Instances"
               az container create \
-                --resource-group <learning> \
-                --name yolov8-container1 \
+                --resource-group <resource-group-name> \  # Replace with your resource group
+                --name $(containerName) \
                 --image $(acrName).azurecr.io/$(dockerImageName):$(dockerTag) \
                 --cpu 2 \
                 --memory 4 \
