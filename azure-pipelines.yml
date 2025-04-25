@@ -57,6 +57,7 @@ stages:
 
         echo "Running the training script inside the Docker container"
         docker run --rm \
+          --name yolov8-container1 \
           -v $(System.DefaultWorkingDirectory)/src:/app/src \  # Mount source code directory
           $(acrName).azurecr.io/$(dockerImageName):$(dockerTag) \
           python src/train.py
