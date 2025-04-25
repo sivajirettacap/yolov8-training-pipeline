@@ -7,6 +7,7 @@ pool:
 variables:
   dockerImageName: yolov8-training1
   dockerTag: $(Build.BuildId)
+  acrName: learnyolo  # Replace this with your actual Azure Container Registry name
 
 stages:
 - stage: Build
@@ -25,9 +26,9 @@ stages:
       displayName: Build Docker Image
     - script: |
         echo "Pushing the Docker image to Azure Container Registry (ACR)"
-        az acr login --name <learnyolo>
-        docker tag $(dockerImageName):$(dockerTag) <learnyolo>.azurecr.io/$(dockerImageName):$(dockerTag)
-        docker push <learnyolo>.azurecr.io/$(dockerImageName):$(dockerTag)
+        az acr login --name $(acrName)
+        docker tag $(dockerImageName):$(dockerTag) $(acrName).azurecr.io/$(dockerImageName):$(dockerTag)
+        docker push $(acrName).azurecr.io/$(dockerImageName):$(dockerTag)
       displayName: Push Docker Image to ACR
 
 - stage: Train
@@ -58,7 +59,7 @@ stages:
               az container create \
                 --resource-group <learning> \
                 --name yolov8-container1 \
-                --image <learnyolo>.azurecr.io/$(dockerImageName):$(dockerTag) \
+                --image $(acrName).azurecr.io/$(dockerImageName):$(dockerTag) \
                 --cpu 2 \
                 --memory 4 \
                 --ports 5000
