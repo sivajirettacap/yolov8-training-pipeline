@@ -49,9 +49,21 @@ stages:
     displayName: Run YOLOv8 Train
     steps:
     - script: |
-        echo "Running train"
-        python src/train.py
-      displayName: Run Model Train
+        echo "Logging in to Azure Container Registry"
+        docker login $(acrName).azurecr.io -u $(ACR_USERNAME) -p $(ACR_PASSWORD)
+
+        echo "Pulling the Docker image from ACR"
+        docker pull $(acrName).azurecr.io/$(dockerImageName):$(dockerTag)
+
+        echo "Running the training script inside the Docker container"
+        docker run --rm \
+          -v $(System.DefaultWorkingDirectory)/src:/app/src \  # Mount source code directory
+          $(acrName).azurecr.io/$(dockerImageName):$(dockerTag) \
+          python src/train.py
+      displayName: Run Training Inside Docker Container
+      env:
+        ACR_USERNAME: $(ACR_USERNAME)
+        ACR_PASSWORD: $(ACR_PASSWORD)
 
 - stage: Deploy
   displayName: Deploy the Model
