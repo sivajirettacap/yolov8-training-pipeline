@@ -59,7 +59,7 @@ stages:
         docker run --rm \
           --name yolov8-container1 \
           -v $(System.DefaultWorkingDirectory)/src:/app/src \  # Mount source code directory
-          $(acrName).azurecr.io/$(dockerImageName):$(dockerTag) \
+          learnyolo.azurecr.io/yolov8-training1:$(dockerTag) \
           python src/train.py
       displayName: Run Training Inside Docker Container
       env:
