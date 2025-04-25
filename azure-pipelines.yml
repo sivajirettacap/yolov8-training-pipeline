@@ -40,6 +40,18 @@ stages:
       env:  # Provide credentials as environment variables (use Azure DevOps secrets for security)
         ACR_USERNAME: $(ACR_USERNAME)
         ACR_PASSWORD: $(ACR_PASSWORD)
+        
+- stage: Train
+  displayName: Train YOLOv8 Model
+  dependsOn: Build
+  jobs:
+  - job: TrainYOLOv8
+    displayName: Run YOLOv8 Train
+    steps:
+    - script: |
+        echo "Running train"
+        python src/train.py
+      displayName: Run Model Train
 
 - stage: Deploy
   displayName: Deploy the Model
@@ -55,7 +67,7 @@ stages:
           - script: |
               echo "Deploying the container to Azure Container Instances"
               az container create \
-                --resource-group <resource-group-name> \  # Replace with your resource group
+                --resource-group <learning> \  # Replace with your resource group
                 --name $(containerName) \
                 --image $(acrName).azurecr.io/$(dockerImageName):$(dockerTag) \
                 --cpu 2 \
