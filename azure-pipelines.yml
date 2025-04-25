@@ -55,7 +55,7 @@ stages:
 
 - stage: Deploy
   displayName: Deploy the Model
-  dependsOn: Build
+  dependsOn: Train
   jobs:
   - deployment: DeployToACI
     displayName: Deploy to Azure Container Instance (ACI)
